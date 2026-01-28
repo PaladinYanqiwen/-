@@ -102,11 +102,15 @@ def run_hrf(
             raise ValueError("step3 requires R2. Run step2 first or pass R2.")
         p3 = prompts["p3"].format(S=S, I_CLIP=I_CLIP, A=A or "", R2=r2)
         r3 = llm(client, cfg, p3).lower().strip()
-        # normalize
+        # normalize - match sentiment labels
+        matched = False
         for lab in ("positive", "neutral", "negative"):
             if lab in r3:
                 r3 = lab
+                matched = True
                 break
+        if not matched:
+            r3 = "neutral"  # default to neutral if no match
         out["R3"] = r3
 
     return out
@@ -115,9 +119,9 @@ def run_hrf(
 def main():
     ap = argparse.ArgumentParser(description="HRF reasoning runner (R1/R2/R3) for HRE-FMSA reproduction.")
     ap.add_argument("--mode", choices=["sentence", "aspect"], default="sentence")
-    ap.add_argument("--step", choices=["step1", "step2", "step3", "all"], default="step2")
+    ap.add_argument("--step", choices=["step1", "step2", "step3", "all"], default="all")
     ap.add_argument("--S", required=True, help="Input sentence text")
-    ap.add_argument("--I_clip", required=True, help="Image caption/description (I_CLIP)")
+    ap.add_argument("--I_CLIP", required=True, help="Image caption/description (I_CLIP)")
     ap.add_argument("--A", default=None, help="Aspect candidates (only for aspect mode)")
     ap.add_argument("--R1", default=None, help="Provide R1 if running step2 only")
     ap.add_argument("--R2", default=None, help="Provide R2 if running step3 only")
@@ -131,7 +135,7 @@ def main():
         mode=args.mode,
         step=args.step,
         S=args.S,
-        I_CLIP=args.I_clip,
+        I_CLIP=args.I_CLIP,
         A=args.A,
         R1=args.R1,
         R2=args.R2,
